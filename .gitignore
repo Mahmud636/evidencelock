@@ -1,0 +1,123 @@
+# ============================================================
+# EvidenceLock - .gitignore
+# ============================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# ---------- Node / Frontend ----------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+
+# ---------- Environment ----------
+.env
+.env.local
+.env.*.local
+*.env
+
+# ---------- Runtime data (uploads, reports, logs) ----------
+backend/uploads/
+backend/reports/
+backend/logs/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+backend/test.db
+*.log
+
+# Uploaded evidence files (do not commit)
+backend/evidence_files/
+backend/storage/
+
+# Generated PDFs
+*.pdf
+!docs/**/*.pdf
+
+# ---------- IDE / Editors ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ---------- OS ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---------- Secrets ----------
+*.pem
+*.key
+secrets/
+# ---------- Database dumps ----------
+*.dump
+*.sql
+*.sqlite
+*.sqlite3
+evidencelock_db.dump
+
+# ---------- Backend runtime artifacts ----------
+backend/uploads/
+backend/reports/
+backend/.env
+backend/*.log
+
+# ---------- Frontend build output ----------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
