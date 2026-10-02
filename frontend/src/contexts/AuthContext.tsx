@@ -1,4 +1,4 @@
-﻿import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
 import { authService } from '@/services/auth'
 import type { User, AuthState } from '@/types'
 import toast from 'react-hot-toast'
