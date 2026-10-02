@@ -81,6 +81,10 @@ app.middleware("http")(auth_middleware)
 async def health_check():
     return {"status": "healthy", "environment": settings.ENVIRONMENT, "version": "1.0.0"}
 
+@app.head("/")
+async def head_root():
+    return None
+
 
 @app.get("/api/")
 async def root():
