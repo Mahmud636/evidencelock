@@ -11,8 +11,8 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadStats()
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(loadStats, 30000)
+    // Auto-refresh every 5 seconds for near-instant updates
+    const interval = setInterval(loadStats, 5000)
     // Refresh whenever the tab regains focus
     const onFocus = () => loadStats()
     window.addEventListener('focus', onFocus)
@@ -100,11 +100,11 @@ export const Dashboard: React.FC = () => {
           accent="text-blue-400"
         />
         <StatCard
-          label="Integrity Warnings"
-          value={violationEvents}
+          label="Compromised Items"
+          value={compromisedItems}
           sub={
             hasViolations
-              ? `${compromisedItems} item${compromisedItems !== 1 ? 's' : ''} affected`
+              ? `${violationEvents} violation event${violationEvents !== 1 ? 's' : ''} on record`
               : 'All clear'
           }
           accent={hasViolations ? 'text-red-400' : 'text-green-400'}
@@ -129,11 +129,11 @@ export const Dashboard: React.FC = () => {
               INTEGRITY ALERT — Action Required
             </p>
             <p className="dark-alert-body">
-              <b>{violationEvents}</b> integrity violation event
-              {violationEvents !== 1 ? 's have' : ' has'} been recorded, affecting{' '}
               <b>{compromisedItems}</b> evidence item
-              {compromisedItems !== 1 ? 's' : ''}. Evidence may have been tampered
-              with. Review the evidence registry immediately.
+              {compromisedItems !== 1 ? 's have' : ' has'} been flagged as
+              compromised, based on <b>{violationEvents}</b> recorded violation
+              event{violationEvents !== 1 ? 's' : ''}. Evidence may have been
+              tampered with. Review the evidence registry immediately.
             </p>
             <Link
               to="/evidence"

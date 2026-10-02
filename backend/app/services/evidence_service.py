@@ -201,8 +201,21 @@ class EvidenceService:
                     if violation_history
                     else "Current file hash mismatch"
                 ),
-                "request_id": violation_history["request_id"] if violation_history else None,
-                "return_hash": violation_history["return_hash"] if violation_history else None,
+                "request_id": (
+                    violation_history["request_id"]
+                    if violation_history
+                    else None
+                ),
+                "return_hash": (
+                    violation_history["return_hash"]
+                    if violation_history
+                    else None
+                ),
+                "returned_file_path": (
+                    violation_history["returned_file_path"]
+                    if violation_history
+                    else None
+                ),
                 "detected_at": (
                     violation_history["return_verified_at"].isoformat()
                     if violation_history and violation_history["return_verified_at"]
@@ -229,7 +242,7 @@ class EvidenceService:
             "created_at": evidence.created_at,
             "last_verified_at": evidence.last_verified_at,
             "verified_status": evidence.verified_status,
-            # NEW: aggregate integrity fields for the UI
+            # Aggregate integrity fields for the UI
             "is_compromised": is_compromised,
             "violation_info": violation_info,
         }
@@ -478,7 +491,11 @@ class EvidenceService:
         )
         self.db.add(custody_event)
 
-        event_type = "EVIDENCE_VERIFIED" if final_verified_status == "VERIFIED" else "INTEGRITY_VIOLATION"
+        event_type = (
+            "EVIDENCE_VERIFIED"
+            if final_verified_status == "VERIFIED"
+            else "INTEGRITY_VIOLATION"
+        )
         audit = create_audit_log(
             event_type=event_type,
             user_id=user_id,

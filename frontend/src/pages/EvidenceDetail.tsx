@@ -209,9 +209,7 @@ export const EvidenceDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ============================================================ */}
-      {/* COMPROMISED BANNER (top of page) */}
-      {/* ============================================================ */}
+      {/* COMPROMISED BANNER */}
       {isCompromised && (
         <div className="bg-red-500/15 border-2 border-red-500/60 rounded-lg p-6">
           <div className="flex items-start gap-4">
@@ -292,9 +290,7 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* Header */}
-      {/* ============================================================ */}
       <div>
         <Link
           to="/evidence"
@@ -337,9 +333,7 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* Access Request Workflow Panel (for Lead/Investigator) */}
-      {/* ============================================================ */}
+      {/* Access Request Workflow Panel */}
       {isRequester && (
         <div
           className={`dark-card ${
@@ -468,9 +462,7 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* Verification result */}
-      {/* ============================================================ */}
       {verification && (
         <div
           className={
@@ -527,9 +519,7 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* Info */}
-      {/* ============================================================ */}
       <div className="dark-card">
         <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-5">
           Evidence Information
@@ -557,14 +547,13 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* Fingerprints */}
-      {/* ============================================================ */}
+      {/* Cryptographic Fingerprint */}
       <div className="dark-card">
         <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-5">
           Cryptographic Fingerprint (SHA-256)
         </h3>
         <div className="space-y-4">
+          {/* Original registered hash — always shown */}
           <div>
             <p className="text-[10px] font-semibold text-gray-500 tracking-wider uppercase mb-1.5">
               Original Hash (at registration)
@@ -573,7 +562,32 @@ export const EvidenceDetail: React.FC = () => {
               {evidence.original_hash}
             </code>
           </div>
-          {evidence.current_hash &&
+
+          {/* Returned hash — shown when evidence has a violation history */}
+          {isCompromised && violationInfo?.return_hash && (
+            <div>
+              <p className="text-[10px] font-semibold text-red-400 tracking-wider uppercase mb-1.5">
+                ⚠ Returned File Hash (TAMPERED)
+              </p>
+              <code className="block text-xs bg-red-500/10 p-3 rounded border border-red-500/30 font-mono break-all text-red-300">
+                {violationInfo.return_hash}
+              </code>
+              <p className="text-[10px] text-red-200/60 mt-1.5">
+                This is the SHA-256 of the file the investigator actually
+                returned. It does NOT match the original.
+              </p>
+              {violationInfo.request_id && (
+                <p className="text-[10px] text-red-200/60 mt-0.5">
+                  Recorded on request{' '}
+                  <span className="font-mono">{violationInfo.request_id}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Current disk hash — only if different from original AND not compromised */}
+          {!isCompromised &&
+            evidence.current_hash &&
             evidence.current_hash !== evidence.original_hash && (
               <div>
                 <p className="text-[10px] font-semibold text-red-400 tracking-wider uppercase mb-1.5">
@@ -584,12 +598,23 @@ export const EvidenceDetail: React.FC = () => {
                 </code>
               </div>
             )}
+
+          {/* Explainer for compromised evidence */}
+          {isCompromised && (
+            <div className="bg-[#0B1220] border border-red-500/20 rounded p-3">
+              <p className="text-[10px] text-gray-400 leading-relaxed">
+                <span className="text-white font-semibold">Note:</span> The
+                registered original file is preserved intact. The tampered file
+                that was returned is stored separately under{' '}
+                <span className="font-mono text-gray-300">uploads/returned/</span>
+                . Both are retained for forensic purposes.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ============================================================ */}
       {/* Timestamps */}
-      {/* ============================================================ */}
       <div className="dark-card">
         <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-5">
           Timestamps
@@ -610,9 +635,7 @@ export const EvidenceDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* ============================================================ */}
       {/* REQUEST MODAL */}
-      {/* ============================================================ */}
       {showRequestModal && !isCompromised && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#0F1729] border border-[#1E2A3E] rounded-lg p-6 w-full max-w-lg">

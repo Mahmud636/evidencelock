@@ -66,7 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authService.login({ email, password })
 
       if (response.mfa_required) {
-        // Keep partial token in localStorage so we can authorize the MFA verify call
         localStorage.setItem('access_token', response.access_token)
         setState(prev => ({
           ...prev,
@@ -100,6 +99,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
+
+      // CRITICAL: persist the access token BEFORE updating state.
+      // The apiClient interceptor reads from localStorage on every
+      // request, so this must happen here.
+      localStorage.setItem('access_token', response.access_token)
+      if (response.refresh_token) {
+        localStorage.setItem('refresh_token', response.refresh_token)
+      }
+
       setState({
         user,
         token: response.access_token,
@@ -132,6 +140,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
+
+      localStorage.setItem('access_token', response.access_token)
+      if (response.refresh_token) {
+        localStorage.setItem('refresh_token', response.refresh_token)
+      }
+
       setState({
         user,
         token: response.access_token,
@@ -161,6 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await authService.logout()
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
     setState({
       user: null,
       token: null,

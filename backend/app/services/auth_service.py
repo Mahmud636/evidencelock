@@ -44,7 +44,6 @@ def create_audit_log(
     action: str = None,
     details: dict = None,
 ) -> AuditLog:
-    """Helper to create an audit log with proper hash chain."""
     log = AuditLog(
         event_type=event_type,
         user_id=user_id,
@@ -82,11 +81,11 @@ class AuthService:
             raise ConflictError("Username already taken")
 
         default_role = await self.db.execute(
-            select(Role).where(Role.name == "VIEWER")
+            select(Role).where(Role.name == "JUDGE")
         )
         role = default_role.scalar_one_or_none()
         if not role:
-            raise ValidationError("Default role 'VIEWER' not found.")
+            raise ValidationError("Default role 'JUDGE' not found.")
 
         user = User(
             email=request.email,
@@ -159,10 +158,7 @@ class AuthService:
 
         permissions = [perm.name for perm in role.permissions]
 
-        # If MFA is enabled, we do NOT issue the full token yet
-        # We return a temporary "mfa_required" response instead
         if user.mfa_enabled:
-            # Create a short-lived partial token that only allows MFA verification
             partial_token = create_access_token(
                 {"sub": str(user.id), "purpose": "mfa_verify"},
                 expires_delta=timedelta(minutes=5),
@@ -179,7 +175,6 @@ class AuthService:
                 "role": role.name,
             }
 
-        # No MFA — issue full token
         token_data = {
             "sub": str(user.id),
             "email": user.email,
@@ -221,7 +216,6 @@ class AuthService:
         ip_address: str,
         user_agent: str,
     ) -> Dict[str, Any]:
-        """Verify TOTP and issue the full access token."""
         user_result = await self.db.execute(
             select(User).where(User.id == user_id)
         )
@@ -236,7 +230,6 @@ class AuthService:
         totp = pyotp.TOTP(secret)
         is_valid = totp.verify(totp_code, valid_window=1)
 
-        # Also check recovery codes
         if not is_valid:
             is_valid = await self._try_recovery_code(user, totp_code)
 
@@ -254,7 +247,6 @@ class AuthService:
             await self.db.commit()
             raise AuthenticationError("Invalid MFA code")
 
-        # Update last_used
         mfa_config_result = await self.db.execute(
             select(MFAConfig).where(MFAConfig.user_id == user.id)
         )
@@ -262,7 +254,6 @@ class AuthService:
         if config:
             config.last_used_at = datetime.utcnow()
 
-        # Load role + permissions
         role_result = await self.db.execute(
             select(Role)
             .options(selectinload(Role.permissions))
@@ -305,7 +296,9 @@ class AuthService:
         }
 
     async def _try_recovery_code(self, user: User, code: str) -> bool:
-        """Check if code matches a recovery code."""
+        if not code or len(code) < 8:
+            return False
+
         mfa_config_result = await self.db.execute(
             select(MFAConfig).where(MFAConfig.user_id == user.id)
         )
@@ -313,14 +306,17 @@ class AuthService:
         if not config or not config.recovery_codes_encrypted:
             return False
 
-        hashed_codes_str = decrypt_data(config.recovery_codes_encrypted)
-        hashed_codes = hashed_codes_str.split("\n")
+        try:
+            hashed_codes_str = decrypt_data(config.recovery_codes_encrypted)
+            hashed_codes = hashed_codes_str.split("\n")
 
-        input_hash = hash_recovery_code(code.upper())
-        if input_hash in hashed_codes:
-            hashed_codes.remove(input_hash)
-            config.recovery_codes_encrypted = encrypt_data("\n".join(hashed_codes))
-            return True
+            input_hash = hash_recovery_code(code.upper())
+            if input_hash in hashed_codes:
+                hashed_codes.remove(input_hash)
+                config.recovery_codes_encrypted = encrypt_data("\n".join(hashed_codes))
+                return True
+        except Exception:
+            return False
         return False
 
     async def logout(self, user_id: str, ip_address: str, user_agent: str) -> None:
@@ -349,7 +345,6 @@ class AuthService:
         return result.scalar_one_or_none()
 
     async def generate_mfa_secret(self, user_id: str) -> Dict[str, Any]:
-        """Generate a new MFA secret + QR code + recovery codes."""
         user = await self.get_user(user_id)
         if not user:
             raise NotFoundError("User not found")
@@ -383,7 +378,6 @@ class AuthService:
         encrypted_secret = encrypt_data(secret)
         encrypted_codes = encrypt_data("\n".join(hashed_codes))
 
-        # Save MFA config (but do NOT enable yet — enable after verification)
         existing_config_result = await self.db.execute(
             select(MFAConfig).where(MFAConfig.user_id == user.id)
         )
@@ -413,7 +407,6 @@ class AuthService:
         }
 
     async def confirm_mfa_setup(self, user_id: str, totp_code: str) -> bool:
-        """Verify the first TOTP code to confirm enrollment and enable MFA."""
         user = await self.get_user(user_id)
         if not user:
             raise NotFoundError("User not found")
@@ -428,7 +421,6 @@ class AuthService:
         if not is_valid:
             raise ValidationError("Invalid verification code. Please try again.")
 
-        # Enable MFA
         user.mfa_enabled = True
         mfa_config_result = await self.db.execute(
             select(MFAConfig).where(MFAConfig.user_id == user.id)
@@ -450,7 +442,6 @@ class AuthService:
         return True
 
     async def verify_mfa(self, user_id: str, totp_code: str) -> bool:
-        """Verify a TOTP code (for settings/testing)."""
         user = await self.get_user(user_id)
         if not user:
             raise NotFoundError("User not found")
@@ -463,7 +454,7 @@ class AuthService:
         return totp.verify(totp_code, valid_window=1)
 
     async def disable_mfa(self, user_id: str, totp_code: str) -> bool:
-        """Disable MFA. Requires a valid TOTP code."""
+        """Disable MFA. Accepts a 6-digit TOTP code OR a recovery code."""
         user = await self.get_user(user_id)
         if not user:
             raise NotFoundError("User not found")
@@ -471,9 +462,31 @@ class AuthService:
         if not user.mfa_enabled:
             raise ValidationError("MFA is not enabled")
 
-        is_valid = await self.verify_mfa(user_id, totp_code)
+        is_valid = False
+
+        if len(totp_code) == 6 and totp_code.isdigit():
+            try:
+                is_valid = await self.verify_mfa(user_id, totp_code)
+            except ValidationError:
+                is_valid = False
+
+        if not is_valid and len(totp_code) >= 8:
+            try:
+                is_valid = await self._try_recovery_code(user, totp_code)
+            except Exception:
+                is_valid = False
+
         if not is_valid:
-            raise ValidationError("Invalid TOTP code")
+            audit_log = create_audit_log(
+                event_type="MFA_FAILURE",
+                user_id=user.id,
+                action="MFA_DISABLE_FAILED",
+                resource_type="USER",
+                resource_id=user.id,
+            )
+            self.db.add(audit_log)
+            await self.db.commit()
+            raise ValidationError("Invalid TOTP code or recovery code")
 
         user.mfa_enabled = False
         user.mfa_secret_encrypted = None
@@ -486,7 +499,7 @@ class AuthService:
             config.is_enabled = False
 
         audit_log = create_audit_log(
-            event_type="MFA_FAILURE",
+            event_type="MFA_DISABLED",
             user_id=user.id,
             action="MFA_DISABLE",
             resource_type="USER",

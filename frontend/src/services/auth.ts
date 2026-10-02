@@ -1,57 +1,52 @@
 ﻿import apiClient from './api'
-import type {
-  LoginRequest,
-  LoginResponse,
-  RegisterRequest,
-  RegisterResponse,
-  MFAActivateResponse,
-  MFAVerifyRequest,
-  MFAVerifyResponse,
-  User,
-} from '@/types'
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token?: string
+  token_type: string
+  expires_in: number
+  mfa_required: boolean
+  user_id: string
+  email: string
+  full_name: string
+  role: string
+}
+
+export interface MFAEnrollResponse {
+  secret: string
+  qr_code: string
+  backup_codes: string[]
+}
+
+export interface MFAVerifyResponse {
+  verified: boolean
+  message: string
+}
+
+export interface RegisterData {
+  email: string
+  username: string
+  password: string
+  full_name: string
+}
 
 export const authService = {
-  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
-    return apiClient.post<RegisterResponse>('/api/v1/auth/register', data)
+  login: async (data: { email: string; password: string }): Promise<LoginResponse> => {
+    return apiClient.post<LoginResponse>('/api/v1/auth/login', data)
   },
 
-  login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/api/v1/auth/login', data)
-    if (response.access_token && !response.mfa_required) {
-      localStorage.setItem('access_token', response.access_token)
-    }
-    return response
+  verifyMfaLogin: async (totpCode: string): Promise<LoginResponse> => {
+    return apiClient.post<LoginResponse>('/api/v1/auth/mfa/verify-login', {
+      totp_code: totpCode,
+    })
   },
 
-  /** Verify TOTP code during login (after /login returned mfa_required=true). */
-  verifyMFALogin: async (totpCode: string): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>(
-      '/api/v1/auth/mfa/verify-login',
-      { totp_code: totpCode }
-    )
-    if (response.access_token) {
-      localStorage.setItem('access_token', response.access_token)
-    }
-    return response
+  register: async (data: RegisterData): Promise<any> => {
+    return apiClient.post('/api/v1/auth/register', data)
   },
 
-  logout: async (): Promise<void> => {
-    try {
-      await apiClient.post('/api/v1/auth/logout')
-    } catch (error) {
-      // ignore
-    } finally {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-    }
-  },
-
-  getCurrentUser: async (): Promise<User> => {
-    return apiClient.get<User>('/api/v1/auth/me')
-  },
-
-  enrollMFA: async (): Promise<MFAActivateResponse> => {
-    return apiClient.post<MFAActivateResponse>('/api/v1/auth/mfa/enroll')
+  enrollMFA: async (): Promise<MFAEnrollResponse> => {
+    return apiClient.post<MFAEnrollResponse>('/api/v1/auth/mfa/enroll')
   },
 
   confirmMFA: async (totpCode: string): Promise<MFAVerifyResponse> => {
@@ -60,20 +55,30 @@ export const authService = {
     })
   },
 
-  verifyMFA: async (data: MFAVerifyRequest): Promise<MFAVerifyResponse> => {
-    return apiClient.post<MFAVerifyResponse>('/api/v1/auth/mfa/verify', data)
+  verifyMFA: async (data: { totp_code: string }): Promise<MFAVerifyResponse> => {
+    return apiClient.post<MFAVerifyResponse>('/api/v1/auth/mfa/confirm', data)
   },
 
-  disableMFA: async (totpCode: string): Promise<{ success: boolean; message: string }> => {
-    return apiClient.post('/api/v1/auth/mfa/disable', { recovery_code: totpCode })
+  disableMFA: async (totpCode: string): Promise<any> => {
+    return apiClient.post('/api/v1/auth/mfa/disable', {
+      totp_code: totpCode,
+    })
   },
 
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('access_token')
+  refreshToken: async (refreshToken: string): Promise<any> => {
+    return apiClient.post('/api/v1/auth/refresh', {
+      refresh_token: refreshToken,
+    })
   },
 
-  clearTokens: (): void => {
+  getCurrentUser: async (): Promise<any> => {
+    return apiClient.get('/api/v1/auth/me')
+  },
+
+  logout: () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
   },
 }
+
+export default authService

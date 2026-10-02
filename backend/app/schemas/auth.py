@@ -61,7 +61,7 @@ class MFAActivateRequest(BaseModel):
 class MFAActivateResponse(BaseModel):
     """MFA activation response schema."""
     secret: str
-    qr_code: str  # Base64 encoded QR code image
+    qr_code: str
     recovery_codes: list[str]
     message: str = "MFA activated successfully. Scan the QR code with your authenticator app."
 
@@ -97,8 +97,18 @@ class TokenRefreshResponse(BaseModel):
 
 
 class MFADisableRequest(BaseModel):
-    """MFA disable request schema."""
-    recovery_code: str = Field(..., min_length=8, description="Recovery code")
+    """MFA disable request schema.
+
+    Accepts either a 6-digit TOTP code from the authenticator app,
+    or an 8+ character recovery code. The service layer tries TOTP first
+    and falls back to recovery codes.
+    """
+    totp_code: str = Field(
+        ...,
+        min_length=6,
+        max_length=20,
+        description="6-digit TOTP code or a recovery code",
+    )
 
 
 class MFADisableResponse(BaseModel):
