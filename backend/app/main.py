@@ -65,8 +65,9 @@ app.openapi = custom_openapi
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"] if settings.DEBUG else ["localhost", "127.0.0.1"],
+    allowed_hosts=["*"],
 )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -100,6 +101,10 @@ from app.api.v1 import (
     auth, cases, evidence, dashboard, reports, users, audit, custody,
     access_requests, field,
 )
+
+@app.head("/")
+async def head_root():
+    return None
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
