@@ -78,10 +78,14 @@ class MFAVerifyResponse(BaseModel):
 
 
 class MFAEnrollResponse(BaseModel):
-    """MFA enrollment response schema."""
+    """MFA enrollment response schema.
+
+    Field names match the frontend TypeScript interface in
+    frontend/src/services/auth.ts (MFAEnrollResponse).
+    """
     secret: str
     qr_code: str
-    backup_codes: list[str]
+    recovery_codes: list[str]
 
 
 class TokenRefreshRequest(BaseModel):

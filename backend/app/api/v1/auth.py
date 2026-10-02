@@ -133,7 +133,7 @@ async def enroll_mfa(
         return MFAEnrollResponse(
             secret=result["secret"],
             qr_code=result["qr_code"],
-            backup_codes=result["recovery_codes"],
+            recovery_codes=result["recovery_codes"],
         )
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=e.message)

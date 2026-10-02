@@ -15,7 +15,7 @@ export interface LoginResponse {
 export interface MFAEnrollResponse {
   secret: string
   qr_code: string
-  backup_codes: string[]
+  recovery_codes: string[]
 }
 
 export interface MFAVerifyResponse {
