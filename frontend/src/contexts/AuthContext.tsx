@@ -100,9 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: new Date().toISOString(),
       }
 
-      // CRITICAL: persist the access token BEFORE updating state.
-      // The apiClient interceptor reads from localStorage on every
-      // request, so this must happen here.
       localStorage.setItem('access_token', response.access_token)
       if (response.refresh_token) {
         localStorage.setItem('refresh_token', response.refresh_token)
@@ -126,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeMFALogin = async (code: string): Promise<boolean> => {
     try {
-      const response = await authService.verifyMFALogin(code)
+      const response = await authService.verifyMfaLogin(code)
 
       const user = {
         id: response.user_id,
